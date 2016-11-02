@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "D:\\as_workspace\\BeijingNews\\alipay_demo\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi-v4\\msp_demo_title_bg.png",
+        "source": "D:\\as_workspace\\BeijingNews\\alipay_demo\\src\\main\\res\\drawable-hdpi\\msp_demo_title_bg.png"
+    },
+    {
+        "merged": "D:\\as_workspace\\BeijingNews\\alipay_demo\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi-v4\\msp_icon.png",
+        "source": "D:\\as_workspace\\BeijingNews\\alipay_demo\\src\\main\\res\\drawable-hdpi\\msp_icon.png"
+    },
+    {
+        "merged": "D:\\as_workspace\\BeijingNews\\alipay_demo\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi-v4\\msp_demo_title.png",
+        "source": "D:\\as_workspace\\BeijingNews\\alipay_demo\\src\\main\\res\\drawable-hdpi\\msp_demo_title.png"
+    }
+]

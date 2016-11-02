@@ -1,0 +1,31 @@
+package com.atguigu.beijingnews.utils;
+
+/**
+ * Created by 颜银 on 2016/10/17.
+ * QQ:443098360
+ * 微信：y443098360
+ * 作用：联网数据的URL
+ */
+public class Constants {
+
+    /**
+     * 请求网络的公共连接地址
+     */
+//    public static final String BASE_URL = "http://192.168.43.42:8080/web_home";
+//    public static final String BASE_URL = "http://192.168.1.50:8080/web_home";
+//    public static final String BASE_URL = "http://10.0.2.2:8080/web_home";
+    public static final String BASE_URL = "http://192.168.191.1:8080/web_home";
+//    public static final String BASE_URL = "http://192.168.31.209:8080/web_home";
+
+    /**
+     * 新闻中心联网请求地址
+     */
+    public static final String NEWS_CENTER_URL = BASE_URL+"/static/api/news/categories.json";
+
+    //http://192.168.1.50:8080/web_home/static/api/news/categories.json
+
+    /**
+     * 商城url公共部分
+     */
+    public static final String WARES_HOT_URL = "http://112.124.22.238:8081/course_api/wares/hot?pageSize=";
+}

@@ -1,0 +1,119 @@
+package com.atguigu.beijingnews.adapter;
+
+import android.content.Context;
+import android.support.v7.widget.RecyclerView;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.atguigu.beijingnews.R;
+import com.atguigu.beijingnews.domain.ShoppingCart;
+import com.atguigu.beijingnews.domain.ShoppingPagerBean;
+import com.atguigu.beijingnews.utils.Cartprovider;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+
+import java.util.List;
+
+/**
+ * Created by 颜银 on 2016/10/26.
+ * QQ:443098360
+ * 微信：y443098360
+ * 作用：
+ */
+public class ShoppingPagerAdapter extends RecyclerView.Adapter<ShoppingPagerAdapter.ViewHolder> {
+
+    private final Context context;
+    private List<ShoppingPagerBean.Wares> datas;
+    private Cartprovider cartprovider;
+
+    public ShoppingPagerAdapter(Context context, List<ShoppingPagerBean.Wares> listBeans) {
+        this.datas = listBeans;
+        this.context = context;
+        cartprovider = new Cartprovider(context);
+    }
+
+    @Override
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View itemView = View.inflate(context, R.layout.item_shopping_pager, null);
+        return new ViewHolder(itemView);
+    }
+
+    @Override
+    public void onBindViewHolder(ViewHolder holder, int position) {
+        ShoppingPagerBean.Wares listBean = datas.get(position);
+        Glide.with(context)
+                .load(listBean.getImgUrl())
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .placeholder(R.drawable.news_pic_default)
+                .error(R.drawable.news_pic_default)
+                .into(holder.iv_icon);
+        holder.tv_name.setText(listBean.getName());
+        holder.tv_price.setText("￥" + listBean.getPrice());
+    }
+
+    @Override
+    public int getItemCount() {
+        return datas == null ? 0 : datas.size();
+    }
+
+    /**
+     * 清空数据
+     */
+    public void clearData() {
+        datas.clear();
+        notifyItemRangeInserted(0,datas.size());
+    }
+
+    /**
+     * 添加数据
+     * @param listBeans
+     */
+    public void addData(List<ShoppingPagerBean.Wares> listBeans) {
+        datas.addAll(0, listBeans);
+
+    }
+
+    /**
+     * 得到多少条数据
+     * @return
+     */
+    public int getCount() {
+        return datas.size();
+    }
+
+    public void addData(int count, List<ShoppingPagerBean.Wares> listBeans) {
+        datas.addAll(count,listBeans);//count是添加前的集合长度 datas.size()是添加后的长度s
+        notifyItemRangeChanged(count, datas.size());
+    }
+
+    class ViewHolder extends RecyclerView.ViewHolder {
+        private ImageView iv_icon;
+        private TextView tv_name;
+        private TextView tv_price;
+        private Button btn_buy;
+
+        public ViewHolder(View itemView) {
+            super(itemView);
+            iv_icon = (ImageView) itemView.findViewById(R.id.iv_icon);
+            tv_name = (TextView) itemView.findViewById(R.id.tv_name);
+            tv_price = (TextView) itemView.findViewById(R.id.tv_price);
+
+            btn_buy = (Button) itemView.findViewById(R.id.btn_buy);
+
+            btn_buy.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Toast.makeText(context, "加入购物车", Toast.LENGTH_SHORT).show();
+                    ShoppingPagerBean.Wares wares = datas.get(getLayoutPosition());
+                    //商品转化为购物车
+                    ShoppingCart shoppingCart = cartprovider.conversion(wares);
+                    cartprovider.addDataToCart(shoppingCart);
+                }
+            });
+        }
+    }
+}

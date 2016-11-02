@@ -1,0 +1,25 @@
+package com.atguigu.beijingnews;
+
+import android.app.Application;
+
+import com.atguigu.beijingnews.volley.VolleyManager;
+
+import org.xutils.x;
+
+/**
+ * Created by 颜银 on 2016/10/16.
+ * QQ:443098360
+ * 微信：y443098360
+ * 作用：
+ */
+public class BeijingNewApplaction extends Application {
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        //xUtils初始化
+        x.Ext.init(this);
+        x.Ext.setDebug(true);
+        //volley新的初始化
+        VolleyManager.init(this);
+    }
+}

@@ -1,0 +1,170 @@
+package com.atguigu.beijingnews.pager;
+
+import android.content.Context;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.TextView;
+
+import com.atguigu.beijingnews.R;
+import com.atguigu.beijingnews.adapter.ShoppingCartAdapter;
+import com.atguigu.beijingnews.base.BasePager;
+import com.atguigu.beijingnews.domain.ShoppingCart;
+import com.atguigu.beijingnews.utils.Cartprovider;
+
+import org.xutils.common.util.LogUtil;
+
+import java.util.List;
+
+/**
+ * Created by 颜银 on 2016/10/17.
+ * QQ:443098360
+ * 微信：y443098360
+ * 作用：购物车
+ */
+public class ShoppingCartPager extends BasePager implements View.OnClickListener {
+    private RecyclerView recyclerView;
+    private CheckBox cb_all;
+    private TextView tv_price_all;
+    private TextView tv_resoult;
+    private Button btn_buy;
+    private Button btn_delete;
+    private Cartprovider cartprovider;
+    private ShoppingCartAdapter adapter;
+
+    public ShoppingCartPager(Context context) {
+        super(context);
+        cartprovider = new Cartprovider(context);
+    }
+
+    @Override
+    public void initData() {
+        super.initData();
+        LogUtil.e("购物车数据被初始化了...");
+        //1.设置标题
+        tv_title.setText("购物车");
+        //2.联网请求，得到数据，创建视图
+        View view = View.inflate(context, R.layout.shopping_cart_pager, null);
+        recyclerView = (RecyclerView) view.findViewById(R.id.recyclerView);
+        cb_all = (CheckBox) view.findViewById(R.id.cb_all);
+        tv_price_all = (TextView) view.findViewById(R.id.tv_price_all);
+        tv_resoult = (TextView) view.findViewById(R.id.tv_resoult);
+        btn_buy = (Button) view.findViewById(R.id.btn_buy);
+        btn_delete = (Button) view.findViewById(R.id.btn_delete);
+        //3.把子视图添加到BasePager的FrameLayout中
+        if (fl_content != null) {
+            fl_content.removeAllViews();
+        }
+        fl_content.addView(view);
+        showData();
+
+
+        //表头 编辑  完成  下面结算  删除 按钮切换
+        btn_cart_edit.setVisibility(View.VISIBLE);
+        btn_cart_over.setVisibility(View.GONE);
+        btn_cart_edit.setOnClickListener(this);
+        btn_cart_over.setOnClickListener(this);
+        btn_buy.setOnClickListener(this);
+        btn_delete.setOnClickListener(this);
+
+        checkData();
+    }
+
+    /**
+     * 显示集合数据 配置适配器
+     */
+    private void showData() {
+        //4.得到数据集合
+        List<ShoppingCart> shoppingCarts = cartprovider.getAllData();
+
+//        for(int i = 0;i < shoppingCarts.size();i++){
+//            LogUtil.e(shoppingCarts.get(i).toString());
+//        }
+        if (shoppingCarts != null && shoppingCarts.size() > 0) {
+            //5.设置适配器
+            adapter = new ShoppingCartAdapter(context, shoppingCarts, tv_price_all, cb_all);
+            recyclerView.setAdapter(adapter);
+            //设置管理器
+            recyclerView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
+        } else {
+            //购物车没有商品
+            tv_resoult.setVisibility(View.VISIBLE);
+        }
+
+    }
+
+    /**
+     * 检验是否有商品  没有显示没有商品信息
+     */
+    private void checkData() {
+        if (adapter != null & adapter.getItemCount() > 0) {
+            //购物车有商品
+            tv_resoult.setVisibility(View.GONE);
+        } else {
+            //购物车没有商品
+            tv_resoult.setVisibility(View.VISIBLE);
+        }
+
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btn_cart_edit://开始是编辑状态--->点击编辑按钮
+                btn_cart_edit.setVisibility(View.GONE);
+                btn_cart_over.setVisibility(View.VISIBLE);
+                //变成完成状态
+                showDelete();
+                break;
+            case R.id.btn_cart_over://开始是完成状态--->点击完成按钮
+                btn_cart_edit.setVisibility(View.VISIBLE);
+                btn_cart_over.setVisibility(View.GONE);
+                //变成编辑状态
+                hideDelete();
+                break;
+            case R.id.btn_buy://去结算按钮
+                break;
+            case R.id.btn_delete://全部删除按钮
+                //删除数据
+                adapter.deleteData();
+                //刷新总价格
+                adapter.showTotalPrice();
+                //全选
+                adapter.checkAll();
+                //显示没有商品信息的界面
+                checkData();
+                break;
+        }
+    }
+
+
+    /**
+     * 隐藏删除 显示购买按钮
+     */
+    private void hideDelete() {
+        //数据设置非全选
+        adapter.checkAll_none(true);
+        adapter.checkAll();
+        //隐藏按钮显示，显示结算按钮
+        btn_buy.setVisibility(View.VISIBLE);
+        btn_delete.setVisibility(View.GONE);
+        //价格重新计算
+        adapter.showTotalPrice();
+    }
+
+    /**
+     * 开始的完成状态
+     */
+    private void showDelete() {
+        //数据设置非全选
+        adapter.checkAll_none(false);
+        adapter.checkAll();
+        //删除按钮显示，隐藏结算按钮
+        btn_delete.setVisibility(View.VISIBLE);
+        btn_buy.setVisibility(View.GONE);
+        //价格重新计算
+        adapter.showTotalPrice();
+    }
+}

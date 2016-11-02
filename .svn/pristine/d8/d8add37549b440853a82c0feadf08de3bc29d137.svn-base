@@ -1,0 +1,40 @@
+package com.atguigu.beijingnews.pager.detailpager;
+
+import android.content.Context;
+import android.graphics.Color;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.TextView;
+
+import com.atguigu.beijingnews.base.MenuDetailBasePager;
+
+/**
+ * Created by 颜银 on 2016/10/17.
+ * QQ:443098360
+ * 微信：y443098360
+ * 作用：主题详情页面
+ */
+public class TopicDetailPager extends MenuDetailBasePager {
+
+    private TextView textView;
+
+    public TopicDetailPager(Context context) {
+        super(context);
+    }
+
+    @Override
+    public View initView() {
+        textView = new TextView(context);
+        textView.setGravity(Gravity.CENTER);
+        textView.setTextColor(Color.RED);
+        textView.setTextSize(30);
+
+        return textView;
+    }
+
+    @Override
+    public void initData() {
+        super.initData();
+        textView.setText("主题详情页面");
+    }
+}

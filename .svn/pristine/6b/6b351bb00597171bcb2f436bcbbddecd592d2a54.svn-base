@@ -1,0 +1,390 @@
+package com.atguigu.beijingnews.pager.detailpager;
+
+import android.content.Context;
+import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.ViewPager;
+import android.text.TextUtils;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.atguigu.beijingnews.R;
+import com.atguigu.beijingnews.base.MenuDetailBasePager;
+import com.atguigu.beijingnews.domain.NewsCenterPagerBean2;
+import com.atguigu.beijingnews.domain.TableDetailPagerBean;
+import com.atguigu.beijingnews.utils.CacheUtils;
+import com.atguigu.beijingnews.utils.Constants;
+import com.atguigu.beijingnews.utils.DensityUtil;
+import com.atguigu.beijingnews.utils.LogUtil;
+import com.atguigu.beijingnews.view.HorizontalScrollViewPager;
+import com.atguigu.listviewrefresh_library.RefreshListView;
+import com.google.gson.Gson;
+
+import org.xutils.common.Callback;
+import org.xutils.http.RequestParams;
+import org.xutils.view.annotation.ViewInject;
+import org.xutils.x;
+
+import java.util.List;
+
+/**
+ * Created by 颜银 on 2016/10/18.
+ * QQ:443098360
+ * 微信：y443098360
+ * 作用：12个页签页面
+ */
+public class TabDetailPager extends MenuDetailBasePager {
+
+
+    private final NewsCenterPagerBean2.DataBean.ChildrenBean childrenBean;
+//    private TextView textView;
+
+    @ViewInject(R.id.viewpager)
+    private HorizontalScrollViewPager viewPager;
+
+    @ViewInject(R.id.tv_title)
+    private TextView tv_title;
+
+    @ViewInject(R.id.ll_point_group)
+    private LinearLayout ll_point_group;
+
+    @ViewInject(R.id.listview)
+    private RefreshListView listview;
+    /**
+     * 顶部新闻数据集合
+     */
+    private List<TableDetailPagerBean.DataBean.TopnewsBean> topnews;
+    /**
+     * 记录之前的信息位置 之前被高亮显示的点
+     */
+    private int perPosition;
+    /**
+     * listView的新闻数据集合
+     */
+    private List<TableDetailPagerBean.DataBean.NewsBean> newsBeans;
+    /**
+     * listView的适配器
+     */
+    private TabDetailListViewAdapter adapter;
+    /**
+     * 请求网络数据的url
+     */
+    private String url;
+    /**
+     * 加载更多的url
+     */
+    private String moreUrl;
+    /**
+     * 是否加载更多
+     */
+    private boolean isLoadMore= false;
+
+
+    public TabDetailPager(Context context, NewsCenterPagerBean2.DataBean.ChildrenBean childrenBean) {
+        super(context);
+        this.childrenBean = childrenBean;
+    }
+
+    @Override
+    public View initView() {
+//        textView = new TextView(context);
+//        textView.setGravity(Gravity.CENTER);
+//        textView.setTextColor(Color.RED);
+//        textView.setTextSize(30);
+        View view = View.inflate(context, R.layout.tabdetail_pager, null);
+        x.view().inject(this, view);
+
+        View topnew = View.inflate(context, R.layout.topnews, null);
+        x.view().inject(this, topnew);
+
+//        Button button = new Button(context);
+//        button.setText("我是按钮");
+//        listview.addHeaderView(button);
+
+        //以头的方式添加顶部轮播图
+//        listview.addHeaderView(topnew);
+
+
+        listview.addTopNewsView(topnew);
+
+        //设置刷新的监听
+        listview.setOnRefreshListener(new MyOnRefreshListener());
+        return view;
+    }
+
+    class MyOnRefreshListener implements RefreshListView.OnRefreshListener {
+        /**
+         *  下拉刷新
+         */
+        @Override
+        public void onPullDownRefresh() {
+            //请求网络
+            getDataFromNet(url);
+        }
+
+        /**
+         * 加载更多
+         */
+        @Override
+        public void onLoadMore() {
+            if(TextUtils.isEmpty(moreUrl)){
+                //没有更多数据
+                Toast.makeText(context, "没有更多数据可以加载", Toast.LENGTH_SHORT).show();
+                listview.onFinishRefrsh(false);
+            }else {
+                //有数据 加载更多
+                getModeDataFromNet();
+            }
+        }
+    }
+    private void getModeDataFromNet() {
+        RequestParams params = new RequestParams(moreUrl);
+        x.http().get(params, new Callback.CommonCallback<String>() {
+            @Override
+            public void onSuccess(String result) {
+                LogUtil.e("TabDetailPager联网请求成功==" + result);
+                isLoadMore = true;
+                processData(result);
+                listview.onFinishRefrsh(false);
+            }
+
+            @Override
+            public void onError(Throwable ex, boolean isOnCallback) {
+                LogUtil.e("TabDetailPager联网请求失败==" + ex.getMessage());
+                listview.onFinishRefrsh(false);
+            }
+
+            @Override
+            public void onCancelled(CancelledException cex) {
+                LogUtil.e("onCancelled==" + cex.getMessage());
+            }
+
+            @Override
+            public void onFinished() {
+                LogUtil.e("onFinished==");
+            }
+        });
+    }
+
+    @Override
+    public void initData() {
+        super.initData();
+//        textView.setText(childrenBean.getTitle());
+
+        url = Constants.BASE_URL + childrenBean.getUrl();
+        LogUtil.e("---TabDetailPager" + url);
+
+        //获取缓存数据
+        String saveJson = CacheUtils.getString(context, url);
+        if (!TextUtils.isEmpty(saveJson)) {
+            processData(saveJson);
+        }
+        //请求联网
+        getDataFromNet(url);
+    }
+
+    private void getDataFromNet(String json) {
+        RequestParams params = new RequestParams(json);
+        x.http().get(params, new Callback.CommonCallback<String>() {
+            @Override
+            public void onSuccess(String result) {
+                LogUtil.e("TabDetailPager联网请求成功==" + result);
+                //缓存
+                CacheUtils.putString(context, url, result);
+                processData(result);
+                listview.onFinishRefrsh(true);
+            }
+
+            @Override
+            public void onError(Throwable ex, boolean isOnCallback) {
+                LogUtil.e("TabDetailPager联网请求失败==" + ex.getMessage());
+                listview.onFinishRefrsh(false);
+            }
+
+            @Override
+            public void onCancelled(CancelledException cex) {
+                LogUtil.e("onCancelled==" + cex.getMessage());
+            }
+
+            @Override
+            public void onFinished() {
+                LogUtil.e("onFinished==");
+            }
+        });
+    }
+
+    private void processData(String json) {
+        TableDetailPagerBean pagerBean = paraseJson(json);
+
+        //顶部新闻数据集合
+        topnews = pagerBean.getData().getTopnews();
+
+        moreUrl = pagerBean.getData().getMore();
+        if(TextUtils.isEmpty(moreUrl)){
+            moreUrl = "";
+        }else {
+            moreUrl = Constants.BASE_URL + moreUrl;
+        }
+
+        if(!isLoadMore){
+            //原来的请求
+            if (topnews != null && topnews.size() > 0) {
+                viewPager.setAdapter(new TabDetailViewPagerAdapter());
+
+                //监听页面的变化
+                viewPager.addOnPageChangeListener(new MyOnPageChangeListener());
+
+                //把之前的红点全部移除  否则会回翻看会出现点多的bug
+                ll_point_group.removeAllViews();
+                //动态添加点
+                addPoint();
+
+                //设置listView的数据 及适配器
+                newsBeans = pagerBean.getData().getNews();
+                if (newsBeans != null && newsBeans.size() > 0) {
+                    adapter = new TabDetailListViewAdapter();
+                    listview.setAdapter(adapter);
+                }
+            }
+
+//        LogUtil.e(pagerBean.getData().getTopnews().get(1).getTitle());
+        }else {
+            //加载更多
+            isLoadMore = false;
+            newsBeans.addAll(pagerBean.getData().getNews());
+            adapter.notifyDataSetChanged();
+        }
+
+    }
+
+    /**
+     * 动态添加点的方法
+     */
+    private void addPoint() {
+        for (int i = 0; i < topnews.size(); i++) {
+            //动态添加点
+            ImageView point = new ImageView(context);
+            point.setBackgroundResource(R.drawable.point_selector);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(DensityUtil.dip2px(context, 5), DensityUtil.dip2px(context, 5));
+            if (i != 0) {
+                params.leftMargin = DensityUtil.dip2px(context, 5);
+                point.setEnabled(false);
+            } else {
+                point.setEnabled(true);
+            }
+            point.setLayoutParams(params);
+            //把点添加到线性布局
+            ll_point_group.addView(point);
+        }
+    }
+
+    class TabDetailListViewAdapter extends BaseAdapter {
+
+        @Override
+        public int getCount() {
+            return newsBeans.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return null;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ViewHolder viewHolder;
+            if (convertView == null) {
+                convertView = View.inflate(context, R.layout.item_tabdetail_pager, null);
+                viewHolder = new ViewHolder();
+                viewHolder.iv_icon = (ImageView) convertView.findViewById(R.id.iv_icon);
+                viewHolder.tv_title = (TextView) convertView.findViewById(R.id.tv_title);
+                viewHolder.tv_time = (TextView) convertView.findViewById(R.id.tv_time);
+                convertView.setTag(viewHolder);
+            } else {
+                viewHolder = (ViewHolder) convertView.getTag();
+            }
+
+            //装配数据
+            TableDetailPagerBean.DataBean.NewsBean newsBean = newsBeans.get(position);
+            viewHolder.tv_title.setText(newsBean.getTitle());
+            viewHolder.tv_time.setText(newsBean.getPubdate());
+            //请求图片
+            x.image().bind(viewHolder.iv_icon, Constants.BASE_URL + newsBean.getListimage());
+
+
+            return convertView;
+        }
+    }
+
+    static class ViewHolder {
+        TextView tv_title;
+        TextView tv_time;
+        ImageView iv_icon;
+    }
+
+    class MyOnPageChangeListener implements ViewPager.OnPageChangeListener {
+
+        @Override
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            //设置之前高亮的点变为默认
+            ll_point_group.getChildAt(perPosition).setEnabled(false);
+            //设置当前页面对应点的点高亮
+            ll_point_group.getChildAt(position).setEnabled(true);
+
+            perPosition = position;
+        }
+
+        @Override
+        public void onPageSelected(int position) {
+            tv_title.setText(topnews.get(position).getTitle());
+        }
+
+        @Override
+        public void onPageScrollStateChanged(int state) {
+
+        }
+    }
+
+    class TabDetailViewPagerAdapter extends PagerAdapter {
+
+        @Override
+        public int getCount() {
+            return topnews.size();
+        }
+
+        @Override
+        public Object instantiateItem(ViewGroup container, int position) {
+            ImageView imageView = new ImageView(context);
+            imageView.setImageResource(R.drawable.pic_item_list_default);
+            x.image().bind(imageView, Constants.BASE_URL + topnews.get(position).getTopimage());
+            container.addView(imageView);
+            return imageView;
+        }
+
+        @Override
+        public boolean isViewFromObject(View view, Object object) {
+            return view == object;
+        }
+
+        @Override
+        public void destroyItem(ViewGroup container, int position, Object object) {
+//            super.destroyItem(container, position, object);
+            container.removeView((View) object);
+        }
+    }
+
+    private TableDetailPagerBean paraseJson(String json) {
+        Gson gson = new Gson();
+        TableDetailPagerBean pagerBean = gson.fromJson(json, TableDetailPagerBean.class);
+        return pagerBean;
+    }
+}

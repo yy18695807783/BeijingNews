@@ -1,0 +1,173 @@
+package com.atguigu.beijingnews.view;
+
+import android.content.Context;
+import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.RotateAnimation;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
+import com.atguigu.beijingnews.R;
+import com.atguigu.beijingnews.utils.LogUtil;
+
+/**
+ * Created by 颜银 on 2016/10/19.
+ * QQ:443098360
+ * 微信：y443098360
+ * 作用：
+ */
+public class RefreshListView extends ListView {
+
+    private View pullDownRefresh;
+    private ImageView iv_red_arrow;
+    private ProgressBar progressbar;
+    private TextView tv_status;
+    private TextView tv_time;
+
+    /**
+     * 下拉刷新状态
+     */
+    private static final int PULL_DOWN_REFRESH = 0;
+    /**
+     * 手松刷新状态
+     */
+    private static final int RELEASE_REFRESH = 1;
+    /**
+     * 正在刷新状态
+     */
+    private static final int REFRESHING = 2;
+    /**
+     * 当前状态  默认为下拉刷新
+     */
+    private static int currentStatus = PULL_DOWN_REFRESH;
+
+    /**
+     * 头部刷新控件的高
+     */
+    private int headerViewHeight;
+
+
+    public RefreshListView(Context context) {
+        this(context, null);
+    }
+
+    public RefreshListView(Context context, AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public RefreshListView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initHeaderView(context);
+        initAnimation();
+    }
+
+    //箭头向上
+    private Animation upAnimation;
+    //箭头向下
+    private Animation downAnimation;
+
+    private void initAnimation() {
+        upAnimation = new RotateAnimation(0, -180, RotateAnimation.RELATIVE_TO_SELF, 0.5f, RotateAnimation.RELATIVE_TO_SELF, 0.5f);
+        upAnimation.setDuration(500);
+        upAnimation.setFillAfter(true);
+        downAnimation = new RotateAnimation(-180, -360, RotateAnimation.RELATIVE_TO_SELF, 0.5f, RotateAnimation.RELATIVE_TO_SELF, 0.5f);
+        downAnimation.setDuration(500);
+        downAnimation.setFillAfter(true);
+    }
+
+    private void initHeaderView(Context context) {
+        View headerView = View.inflate(context, R.layout.head_refresh, null);
+
+        pullDownRefresh = headerView.findViewById(R.id.ll_pull_refresh);
+        iv_red_arrow = (ImageView) headerView.findViewById(R.id.iv_red_arrow);
+        progressbar = (ProgressBar) headerView.findViewById(R.id.progressbar);
+        tv_status = (TextView) headerView.findViewById(R.id.tv_status);
+        tv_time = (TextView) headerView.findViewById(R.id.tv_time);
+
+//        View.setPaddingTop(0,-控件的高，0,0);//完成隐藏
+//        View.setPaddingTop(0,0，0,0);//完成显示
+//        View.setPaddingTop(0,控件的高，0,0);//控件两倍显示
+        pullDownRefresh.measure(0, 0);//测量控件的高 参数无实际意义，占位
+        headerViewHeight = pullDownRefresh.getMeasuredHeight();
+        pullDownRefresh.setPadding(0, -headerViewHeight, 0, 0);//默认隐藏
+
+        addHeaderView(headerView);
+    }
+
+    private float startY;
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                //记录其实位置
+                startY = ev.getY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                //计算偏移量
+                float endY = ev.getY();
+                float diatanceY = endY - startY;
+
+                //判断
+                if (diatanceY > 0) {
+                    //下拉过程
+                    //float paddingTop = -控件的高 + distanceY
+                    float paddingTop = -headerViewHeight + diatanceY;
+                    LogUtil.e("paddingTop===" + paddingTop + "'-headerViewHeight =" + -headerViewHeight +"");
+                    if (paddingTop > 0 && currentStatus != RELEASE_REFRESH) {
+                        //手松刷新
+                        currentStatus = RELEASE_REFRESH;
+                        refreshView(currentStatus);
+                        LogUtil.e("手松刷新...");
+                    } else if (paddingTop < 0 && currentStatus != PULL_DOWN_REFRESH) {
+                        //下拉刷新
+                        currentStatus = PULL_DOWN_REFRESH;
+                        refreshView(currentStatus);
+                        LogUtil.e("下拉刷新...");
+                    }
+                    // View.setPaddingTop(0,paddingTop，0,0);//完成显示
+                    pullDownRefresh.setPadding(0, (int) paddingTop, 0, 0);
+                }
+
+                break;
+            case MotionEvent.ACTION_UP:
+                if(currentStatus == PULL_DOWN_REFRESH){ //还没出来 隐藏
+                    pullDownRefresh.setPadding(0,-headerViewHeight,0,0);//隐藏
+                }else if(currentStatus == RELEASE_REFRESH){//手松刷新  出来啦  松手显示正在刷新
+                    //状态改变-->正在加载
+                    currentStatus = REFRESHING;
+                    //显示-->全部显示
+                    pullDownRefresh.setPadding(0, 0, 0,0);
+                    //页面-->显示正在加载页面
+                    refreshView(currentStatus);
+                }
+
+                break;
+        }
+        return super.onTouchEvent(ev);
+    }
+
+    private void refreshView(int currentStatus) {
+        switch (currentStatus) {
+            case PULL_DOWN_REFRESH://下拉刷新...  显示箭头  向下
+                tv_status.setText("下拉刷新...");
+                iv_red_arrow.setVisibility(VISIBLE);
+                iv_red_arrow.startAnimation(downAnimation);
+                break;
+            case RELEASE_REFRESH://手松刷新... 显示箭头  向上
+                tv_status.setText("手松刷新...");
+                iv_red_arrow.startAnimation(upAnimation);
+                break;
+            case REFRESHING://正在刷新...  显示progressbar 不显示箭头
+                tv_status.setText("正在刷新...");
+                progressbar.setVisibility(VISIBLE);
+                iv_red_arrow.clearAnimation();
+                iv_red_arrow.setVisibility(GONE);
+                break;
+        }
+    }
+}

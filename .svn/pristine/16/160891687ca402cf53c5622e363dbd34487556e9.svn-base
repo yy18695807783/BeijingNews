@@ -1,0 +1,253 @@
+package com.atguigu.beijingnews.pager.detailpager;
+
+import android.content.Context;
+import android.content.Intent;
+import android.text.TextUtils;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.GridView;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
+
+import com.android.volley.NetworkResponse;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.HttpHeaderParser;
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.StringRequest;
+import com.atguigu.beijingnews.R;
+import com.atguigu.beijingnews.activity.ShowImageActivity;
+import com.atguigu.beijingnews.base.MenuDetailBasePager;
+import com.atguigu.beijingnews.domain.NewsCenterPagerBean2;
+import com.atguigu.beijingnews.domain.PhotosDetailPagerBean;
+import com.atguigu.beijingnews.utils.CacheUtils;
+import com.atguigu.beijingnews.utils.Constants;
+import com.atguigu.beijingnews.utils.LogUtil;
+import com.atguigu.beijingnews.volley.VolleyManager;
+import com.google.gson.Gson;
+
+import org.xutils.view.annotation.ViewInject;
+import org.xutils.x;
+
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+
+/**
+ * Created by 颜银 on 2016/10/17.
+ * QQ:443098360
+ * 微信：y443098360
+ * 作用：组图详情页面
+ */
+public class PhotosDetailPager extends MenuDetailBasePager {
+
+
+    private final NewsCenterPagerBean2.DataBean dataBean;
+
+    @ViewInject(R.id.listview)
+    private ListView listView;
+    @ViewInject(R.id.gridview)
+    private GridView gridView;
+    /**
+     * 图片专题页面的url
+     */
+    private String photosUrl;
+    private List<PhotosDetailPagerBean.DataBean.NewsBean> news;
+
+    public PhotosDetailPager(Context context, NewsCenterPagerBean2.DataBean dataBean) {
+        super(context);
+        this.dataBean = dataBean;
+    }
+
+    @Override
+    public View initView() {
+        View view = View.inflate(context, R.layout.photos_detail_pager, null);
+        x.view().inject(this, view);
+        return view;
+    }
+
+    @Override
+    public void initData() {
+        super.initData();
+
+        photosUrl = Constants.BASE_URL + dataBean.getUrl();
+        LogUtil.e("photosUrl==" + photosUrl.toString());
+
+        String saveJson = CacheUtils.getString(context, photosUrl);
+        if (!TextUtils.isEmpty(saveJson)) {
+            processJson(saveJson);
+        }
+
+        StringRequest request = new StringRequest(Request.Method.GET, photosUrl, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String s) {
+                LogUtil.e("图组请求数据成功==" + s);
+                //本地缓存文本数据
+                CacheUtils.putString(context,photosUrl,s);
+                processJson(s);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError volleyError) {
+                LogUtil.e("图组请求数据失败==" + volleyError.getMessage());
+            }
+        }) {
+
+            @Override
+            protected Response<String> parseNetworkResponse(NetworkResponse response) {
+                String parsed;
+                try {
+                    parsed = new String(response.data, "UTF-8");
+                    return Response.success(parsed, HttpHeaderParser.parseCacheHeaders(response));
+                } catch (UnsupportedEncodingException var4) {
+                    parsed = new String(response.data);
+                }
+
+                return super.parseNetworkResponse(response);
+            }
+        };
+        VolleyManager.getRequestQueue().add(request);
+
+    }
+
+    private void processJson(String json) {
+        PhotosDetailPagerBean bean = new Gson().fromJson(json, PhotosDetailPagerBean.class);
+        news = bean.getData().getNews();
+        if (news != null && news.size() > 0) {
+            //设置适配器
+            listView.setAdapter(new PhotosDetailPagerAdapter());
+            listView.setOnItemClickListener(new PhotosDetailPagerListViewOnItemClickListener());
+        }
+    }
+
+
+    class PhotosDetailPagerAdapter extends BaseAdapter {
+
+        @Override
+        public int getCount() {
+            return news == null ? 0 : news.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return null;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ViewHolder viewHolder = null;
+            if (convertView == null) {
+                if(isListview){
+                    //listView
+                    LogUtil.e("listView-------------");
+                    convertView = View.inflate(context, R.layout.item_photos_detail_pager, null);
+                }else {
+                    //GridView
+                    LogUtil.e("GridView-------------");
+                    convertView = View.inflate(context, R.layout.item_photos_detail_pager2, null);
+                }
+
+                viewHolder = new ViewHolder();
+                viewHolder.iv_icon = (ImageView) convertView.findViewById(R.id.iv_icon);
+                viewHolder.tv_title = (TextView) convertView.findViewById(R.id.tv_title);
+                convertView.setTag(viewHolder);
+            } else {
+                viewHolder = (ViewHolder) convertView.getTag();
+            }
+            //取出数据装配数据
+            PhotosDetailPagerBean.DataBean.NewsBean newsBean = news.get(position);
+
+            viewHolder.tv_title.setText(newsBean.getTitle());
+            loadImager(viewHolder, Constants.BASE_URL + newsBean.getListimage());
+            return convertView;
+        }
+    }
+
+    private void loadImager(final ViewHolder viewHolder, String imagerUrl) {
+        viewHolder.iv_icon.setTag(imagerUrl);
+        //直接在这里请求会乱位置
+        ImageLoader.ImageListener listener = new ImageLoader.ImageListener() {
+            @Override
+            public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
+                if (imageContainer != null) {
+
+                    if (viewHolder.iv_icon != null) {
+                        if (imageContainer.getBitmap() != null) {
+                            viewHolder.iv_icon.setImageBitmap(imageContainer.getBitmap());
+                        } else {
+                            viewHolder.iv_icon.setImageResource(R.drawable.pic_item_list_default);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onErrorResponse(VolleyError volleyError) {
+                //如果出错，则说明都不显示（简单处理），最好准备一张出错图片
+                viewHolder.iv_icon.setImageResource(R.drawable.pic_item_list_default);
+            }
+        };
+        VolleyManager.getImageLoader().get(imagerUrl, listener);
+    }
+
+
+    static class ViewHolder {
+        ImageView iv_icon;
+        TextView tv_title;
+    }
+
+    /**
+     * true:显示ListView,但隐藏GridView
+     * false:显示GridView，但隐藏ListView
+     */
+    private boolean isListview = true;
+
+    public void switchListAndGrid(ImageButton ib_list_grid) {
+        if (isListview) {
+            isListview = false;
+            //显示GridView
+            gridView.setVisibility(View.VISIBLE);
+            gridView.setAdapter(new PhotosDetailPagerAdapter());
+            gridView.setOnItemClickListener(new PhotosDetailPagerListViewOnItemClickListener());
+            //隐藏ListView
+            listView.setVisibility(View.GONE);
+            //按钮状态--ListView
+            ib_list_grid.setImageResource(R.drawable.icon_pic_list_type);
+
+        } else {
+            isListview = true;
+            //显示ListView
+            listView.setVisibility(View.VISIBLE);
+            listView.setAdapter(new PhotosDetailPagerAdapter());
+            listView.setOnItemClickListener(new PhotosDetailPagerListViewOnItemClickListener());
+            //隐藏GridView
+            gridView.setVisibility(View.GONE);
+            //按钮状态--GridView
+            ib_list_grid.setImageResource(R.drawable.icon_pic_grid_type);
+
+        }
+    }
+    class PhotosDetailPagerListViewOnItemClickListener implements AdapterView.OnItemClickListener {
+
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+            LogUtil.e("ListView点击事件");
+            PhotosDetailPagerBean.DataBean.NewsBean newsBean = news.get(position);
+            String largeimage = newsBean.getLargeimage();
+            Intent intent = new Intent(context,ShowImageActivity.class);
+            intent.putExtra("BigImageUrl",largeimage);
+            context.startActivity(intent);
+
+        }
+    }
+}

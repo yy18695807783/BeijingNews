@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "D:\\as_workspace\\BeijingNews\\pullToRefreshViewPager\\build\\intermediates\\res\\merged\\release\\drawable\\indicator_bg_bottom.xml",
+        "source": "D:\\as_workspace\\BeijingNews\\pullToRefreshViewPager\\build\\intermediates\\exploded-aar\\BeijingNews\\PullToRefresh_library\\unspecified\\res\\drawable\\indicator_bg_bottom.xml"
+    },
+    {
+        "merged": "D:\\as_workspace\\BeijingNews\\pullToRefreshViewPager\\build\\intermediates\\res\\merged\\release\\drawable\\indicator_bg_top.xml",
+        "source": "D:\\as_workspace\\BeijingNews\\pullToRefreshViewPager\\build\\intermediates\\exploded-aar\\BeijingNews\\PullToRefresh_library\\unspecified\\res\\drawable\\indicator_bg_top.xml"
+    }
+]

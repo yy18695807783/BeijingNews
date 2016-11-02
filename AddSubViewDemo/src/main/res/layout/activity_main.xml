@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:yanyin="http://schemas.android.com/apk/res-auto"
+    android:gravity="center"
+    tools:context="com.atguigu.addsubviewdemo.MainActivity">
+
+    <com.atguigu.addsubviewdemo.AddSubView
+        android:id="@+id/add_sub_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        yanyin:value = "1"
+        yanyin:maxValue = "10"
+        yanyin:minValue = "1"
+        yanyin:number_background="@drawable/add_sub_view_bg"
+        yanyin:sub_background="@drawable/btn_white_bg"
+        yanyin:add_background="@drawable/btn_white_bg"
+        />
+
+</RelativeLayout>
